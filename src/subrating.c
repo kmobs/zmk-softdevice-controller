@@ -10,17 +10,17 @@ LOG_MODULE_REGISTER(zmk_sdc_subrating, CONFIG_ZMK_LOG_LEVEL);
 #if IS_ENABLED(CONFIG_BT_SUBRATING)
 
 /* Idle state: high subrating for power savings */
-#define SUBRATE_IDLE_MIN        1
-#define SUBRATE_IDLE_MAX        15
-#define SUBRATE_IDLE_CN         2
-#define SUBRATE_MAX_LATENCY     10
-#define SUBRATE_TIMEOUT         400  /* 4 seconds in 10ms units */
+#define SUBRATE_IDLE_MIN        CONFIG_ZMK_SDC_SUBRATE_IDLE_MIN
+#define SUBRATE_IDLE_MAX        CONFIG_ZMK_SDC_SUBRATE_IDLE_MAX
+#define SUBRATE_IDLE_CN         CONFIG_ZMK_SDC_SUBRATE_IDLE_CN
+#define SUBRATE_MAX_LATENCY     CONFIG_ZMK_SDC_SUBRATE_MAX_LATENCY
+#define SUBRATE_TIMEOUT         CONFIG_ZMK_SDC_SUBRATE_TIMEOUT
 
 #if IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
 /* Active state: minimal subrating for fast response */
-#define SUBRATE_ACTIVE_MIN      1
-#define SUBRATE_ACTIVE_MAX      2
-#define SUBRATE_ACTIVE_CN       1
+#define SUBRATE_ACTIVE_MIN      CONFIG_ZMK_SDC_SUBRATE_ACTIVE_MIN
+#define SUBRATE_ACTIVE_MAX      CONFIG_ZMK_SDC_SUBRATE_ACTIVE_MAX
+#define SUBRATE_ACTIVE_CN       CONFIG_ZMK_SDC_SUBRATE_ACTIVE_CN
 
 static void set_active_subrate(struct bt_conn *conn, void *data) {
     struct bt_conn_info info;

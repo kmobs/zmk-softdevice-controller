@@ -185,6 +185,79 @@ config BT_CTLR_FAL_SIZE
 	  Maximum addresses in the Filter Accept List.
 
 # ============================================================================
+# Connection Subrating
+# ============================================================================
+
+if BT_SUBRATING
+
+config ZMK_SDC_SUBRATE_IDLE_MIN
+	int "Idle subrate factor minimum"
+	default 1
+	range 1 500
+	help
+	  Minimum subrate factor when idle. Higher values save power.
+
+config ZMK_SDC_SUBRATE_IDLE_MAX
+	int "Idle subrate factor maximum"
+	default 15
+	range 1 500
+	help
+	  Maximum subrate factor when idle. Higher values save more power
+	  but increase latency.
+
+config ZMK_SDC_SUBRATE_IDLE_CN
+	int "Idle continuation number"
+	default 2
+	range 0 500
+	help
+	  Number of connection events to remain active after data is sent
+	  when idle.
+
+config ZMK_SDC_SUBRATE_MAX_LATENCY
+	int "Maximum peripheral latency"
+	default 10
+	range 0 500
+	help
+	  Maximum peripheral latency in connection events.
+
+config ZMK_SDC_SUBRATE_TIMEOUT
+	int "Supervision timeout (10ms units)"
+	default 400
+	range 10 3200
+	help
+	  Supervision timeout in 10ms units (400 = 4 seconds).
+
+if ZMK_SPLIT_ROLE_CENTRAL
+
+config ZMK_SDC_SUBRATE_ACTIVE_MIN
+	int "Active subrate factor minimum"
+	default 1
+	range 1 500
+	help
+	  Minimum subrate factor when active (typing). Should be low for
+	  fast response.
+
+config ZMK_SDC_SUBRATE_ACTIVE_MAX
+	int "Active subrate factor maximum"
+	default 2
+	range 1 500
+	help
+	  Maximum subrate factor when active. Should be low for fast
+	  response.
+
+config ZMK_SDC_SUBRATE_ACTIVE_CN
+	int "Active continuation number"
+	default 1
+	range 0 500
+	help
+	  Number of connection events to remain active after data is sent
+	  when active.
+
+endif # ZMK_SPLIT_ROLE_CENTRAL
+
+endif # BT_SUBRATING
+
+# ============================================================================
 # Logging
 # ============================================================================
 
