@@ -10,24 +10,64 @@ LOG_MODULE_REGISTER(zmk_sdc_subrating, CONFIG_ZMK_LOG_LEVEL);
 #if IS_ENABLED(CONFIG_BT_SUBRATING)
 
 /* Idle state: high subrating for power savings */
-#define SUBRATE_IDLE_MIN        CONFIG_ZMK_SDC_SUBRATE_IDLE_MIN
-#define SUBRATE_IDLE_MAX        CONFIG_ZMK_SDC_SUBRATE_IDLE_MAX
-#define SUBRATE_IDLE_CN         CONFIG_ZMK_SDC_SUBRATE_IDLE_CN
-#define SUBRATE_MAX_LATENCY     CONFIG_ZMK_SDC_SUBRATE_MAX_LATENCY
-#define SUBRATE_TIMEOUT         CONFIG_ZMK_SDC_SUBRATE_TIMEOUT
+#define SUBRATE_IDLE_MIN        CONFIG_ZMK_BLE_SUBRATE_IDLE_MIN
+#define SUBRATE_IDLE_MAX        CONFIG_ZMK_BLE_SUBRATE_IDLE_MAX
+#define SUBRATE_IDLE_CN         CONFIG_ZMK_BLE_SUBRATE_IDLE_CN
+#define SUBRATE_MAX_LATENCY     CONFIG_ZMK_BLE_SUBRATE_MAX_LATENCY
+#define SUBRATE_TIMEOUT         CONFIG_ZMK_BLE_SUBRATE_TIMEOUT
+
+/*
+ * Bluetooth Core Spec constraints for subrating parameters:
+ * 1. subrate_max * (max_latency + 1) <= 500
+ * 2. subrate_max >= subrate_min
+ * 3. continuation_number < subrate_max
+ * 4. supervision_timeout (ms) > 2 * conn_interval (ms) * subrate_max * (max_latency + 1)
+ *
+ * For constraint 4, we check against minimum BLE interval (7.5ms).
+ * Formula: TIMEOUT * 10ms > 2 * 7.5ms * MAX * (LATENCY + 1)
+ *          TIMEOUT * 2 > 3 * MAX * (LATENCY + 1)
+ */
+
+/* Idle parameter validation */
+BUILD_ASSERT(SUBRATE_IDLE_MAX >= SUBRATE_IDLE_MIN,
+    "ZMK_BLE_SUBRATE_IDLE_MAX must be >= ZMK_BLE_SUBRATE_IDLE_MIN");
+
+BUILD_ASSERT(SUBRATE_IDLE_MAX * (SUBRATE_MAX_LATENCY + 1) <= 500,
+    "ZMK_BLE_SUBRATE_IDLE_MAX * (ZMK_BLE_SUBRATE_MAX_LATENCY + 1) must be <= 500");
+
+BUILD_ASSERT(SUBRATE_IDLE_CN < SUBRATE_IDLE_MAX,
+    "ZMK_BLE_SUBRATE_IDLE_CN must be < ZMK_BLE_SUBRATE_IDLE_MAX");
+
+/* Supervision timeout check for minimum 7.5ms connection interval */
+BUILD_ASSERT(SUBRATE_TIMEOUT * 2 > 3 * SUBRATE_IDLE_MAX * (SUBRATE_MAX_LATENCY + 1),
+    "ZMK_BLE_SUBRATE_TIMEOUT too low for 7.5ms interval; increase timeout or reduce IDLE_MAX/MAX_LATENCY");
 
 #if IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
 /* Active state: minimal subrating for fast response */
-#define SUBRATE_ACTIVE_MIN      CONFIG_ZMK_SDC_SUBRATE_ACTIVE_MIN
-#define SUBRATE_ACTIVE_MAX      CONFIG_ZMK_SDC_SUBRATE_ACTIVE_MAX
-#define SUBRATE_ACTIVE_CN       CONFIG_ZMK_SDC_SUBRATE_ACTIVE_CN
+#define SUBRATE_ACTIVE_MIN      CONFIG_ZMK_BLE_SUBRATE_ACTIVE_MIN
+#define SUBRATE_ACTIVE_MAX      CONFIG_ZMK_BLE_SUBRATE_ACTIVE_MAX
+#define SUBRATE_ACTIVE_CN       CONFIG_ZMK_BLE_SUBRATE_ACTIVE_CN
+
+/* Active parameter validation */
+BUILD_ASSERT(SUBRATE_ACTIVE_MAX >= SUBRATE_ACTIVE_MIN,
+    "ZMK_BLE_SUBRATE_ACTIVE_MAX must be >= ZMK_BLE_SUBRATE_ACTIVE_MIN");
+
+BUILD_ASSERT(SUBRATE_ACTIVE_MAX * 1 <= 500,  /* max_latency=0 for active */
+    "ZMK_BLE_SUBRATE_ACTIVE_MAX must be <= 500");
+
+BUILD_ASSERT(SUBRATE_ACTIVE_CN < SUBRATE_ACTIVE_MAX,
+    "ZMK_BLE_SUBRATE_ACTIVE_CN must be < ZMK_BLE_SUBRATE_ACTIVE_MAX");
+
+/* Supervision timeout check for active state (max_latency=0) */
+BUILD_ASSERT(SUBRATE_TIMEOUT * 2 > 3 * SUBRATE_ACTIVE_MAX,
+    "ZMK_BLE_SUBRATE_TIMEOUT too low for active state; increase timeout or reduce ACTIVE_MAX");
 
 static void set_active_subrate(struct bt_conn *conn, void *data) {
     struct bt_conn_info info;
 
     bt_conn_get_info(conn, &info);
 
-    if (info.state == BT_CONN_STATE_CONNECTED) {
+    if (info.role == BT_CONN_ROLE_CENTRAL && info.state == BT_CONN_STATE_CONNECTED) {
         const struct bt_conn_le_subrate_param params = {
             .subrate_min = SUBRATE_ACTIVE_MIN,
             .subrate_max = SUBRATE_ACTIVE_MAX,
@@ -48,7 +88,7 @@ static void set_idle_subrate(struct bt_conn *conn, void *data) {
 
     bt_conn_get_info(conn, &info);
 
-    if (info.state == BT_CONN_STATE_CONNECTED) {
+    if (info.role == BT_CONN_ROLE_CENTRAL && info.state == BT_CONN_STATE_CONNECTED) {
         const struct bt_conn_le_subrate_param params = {
             .subrate_min = SUBRATE_IDLE_MIN,
             .subrate_max = SUBRATE_IDLE_MAX,
@@ -80,11 +120,23 @@ static void subrate_idle(void) {
 static void subrate_changed_cb(struct bt_conn *conn,
                                const struct bt_conn_le_subrate_changed *params)
 {
+    struct bt_conn_info info;
+    bt_conn_get_info(conn, &info);
+    const bt_addr_le_t *addr = bt_conn_get_dst(conn);
+    const char *role = info.role == BT_CONN_ROLE_CENTRAL ? "central" : "peripheral";
+
     if (params->status == BT_HCI_ERR_SUCCESS) {
-        LOG_INF("Subrating: factor=%d, cn=%d",
+        LOG_INF("Subrating [%s %02x:%02x:%02x:%02x:%02x:%02x]: factor=%d, cn=%d",
+                role,
+                addr->a.val[5], addr->a.val[4], addr->a.val[3],
+                addr->a.val[2], addr->a.val[1], addr->a.val[0],
                 params->factor, params->continuation_number);
     } else {
-        LOG_WRN("Subrating failed: 0x%02x", params->status);
+        LOG_WRN("Subrating failed [%s %02x:%02x:%02x:%02x:%02x:%02x]: 0x%02x",
+                role,
+                addr->a.val[5], addr->a.val[4], addr->a.val[3],
+                addr->a.val[2], addr->a.val[1], addr->a.val[0],
+                params->status);
     }
 }
 
