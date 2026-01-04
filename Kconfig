@@ -26,6 +26,11 @@ config ZMK_BLE_SUBRATE_ACTIVE_CN
 	default 1
 	range 0 499
 
+config ZMK_BLE_SUBRATE_ACTIVE_MAX_LATENCY
+	int "Active maximum peripheral latency"
+	default 15
+	range 0 499
+
 # IDLE tier
 config ZMK_BLE_SUBRATE_IDLE_MIN
 	int "Idle subrate factor minimum"
@@ -34,23 +39,23 @@ config ZMK_BLE_SUBRATE_IDLE_MIN
 
 config ZMK_BLE_SUBRATE_IDLE_MAX
 	int "Idle subrate factor maximum"
-	default 8
+	default 15
 	range 1 500
 
 config ZMK_BLE_SUBRATE_IDLE_CN
 	int "Idle continuation number"
-	default 7
+	default 14
 	range 0 499
 
 config ZMK_BLE_SUBRATE_IDLE_MAX_LATENCY
 	int "Idle maximum peripheral latency"
-	default 15
+	default 2
 	range 0 499
 
 # DORMANT tier
 config ZMK_BLE_SUBRATE_DORMANT_DELAY
 	int "Milliseconds before dormant tier"
-	default 300000
+	default 900000
 	range 10000 3600000
 
 config ZMK_BLE_SUBRATE_DORMANT_MIN
@@ -60,17 +65,17 @@ config ZMK_BLE_SUBRATE_DORMANT_MIN
 
 config ZMK_BLE_SUBRATE_DORMANT_MAX
 	int "Dormant subrate factor maximum"
-	default 25
+	default 80
 	range 1 500
 
 config ZMK_BLE_SUBRATE_DORMANT_CN
 	int "Dormant continuation number"
-	default 24
+	default 20
 	range 0 499
 
 config ZMK_BLE_SUBRATE_DORMANT_MAX_LATENCY
 	int "Dormant maximum peripheral latency"
-	default 15
+	default 0
 	range 0 499
 
 endif # BT_SUBRATING && ZMK_SPLIT_ROLE_CENTRAL
