@@ -1,7 +1,7 @@
 rsource "src/sdc/Kconfig"
 
 # Three-tier subrating: ACTIVE (typing) -> IDLE (~30s) -> DORMANT (+5min)
-# Only split central makes subrate requests; peripherals respond to host
+# Central controls tier transitions; peripheral requests ACTIVE on local activity
 
 if BT_SUBRATING && ZMK_SPLIT_ROLE_CENTRAL
 
