@@ -45,6 +45,10 @@ include:
     snippet: softdevice-controller
 ```
 
+Build and flash all parts of your split keyboard with the snippet enabled. The split connection will automatically adjust subrating parameters based on typing activity. 
+
+Existing BLE bonds (both host devices and split peripherals) should continue to work without re-pairing. However, pairing new devices may have issues while on SoftDevice Controller; if you encounter problems, try pairing with the Zephyr controller first (without the snippet) then switch to SDC.
+
 ## License
 
 - [LicenseRef-Nordic-5-Clause](https://github.com/nrfconnect/sdk-nrf/blob/main/LICENSE) for code ported from nRF Connect SDK
