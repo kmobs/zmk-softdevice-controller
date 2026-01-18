@@ -126,16 +126,17 @@ config BT_LL_SOFTDEVICE_INIT_PRIORITY
 # SDC Connection Configuration
 # ============================================================================
 
-config BT_CTLR_SDC_PERIPHERAL_COUNT
-	int "Number of peripheral connections"
-	default 5 if ZMK_SPLIT_ROLE_CENTRAL
-	default BT_MAX_CONN
+config BT_CTLR_SDC_CENTRAL_COUNT
+	int "Number of concurrent central roles"
+	default 0 if !BT_CENTRAL
+	default ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS if ZMK_SPLIT_ROLE_CENTRAL
+	default 1 if BT_CENTRAL
 	range 0 BT_MAX_CONN
 	help
-	  Maximum number of connections in peripheral role.
-	  For ZMK split central, defaults to 5 (BT_MAX_CONN=6 minus 1 for split
-	  peripheral). For non-split or split peripheral, defaults to BT_MAX_CONN
-	  since all connections are to hosts.
+	  Number of concurrent central connections (for split peripherals).
+	  The peripheral count is derived as: BT_MAX_CONN - BT_CTLR_SDC_CENTRAL_COUNT
+
+	  For ZMK split central, defaults to ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS.
 
 config BT_CTLR_SDC_TX_PACKET_COUNT
 	int "TX packet buffers per connection"

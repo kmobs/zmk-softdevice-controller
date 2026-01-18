@@ -48,26 +48,19 @@ LOG_MODULE_REGISTER(bt_sdc_hci_driver);
 #endif
 
 #if defined(CONFIG_BT_CONN) && defined(CONFIG_BT_CENTRAL)
-
-#if CONFIG_BT_MAX_CONN > 1
-#define SDC_CENTRAL_COUNT (CONFIG_BT_MAX_CONN - CONFIG_BT_CTLR_SDC_PERIPHERAL_COUNT)
-#else
-/* Allow the case where BT_MAX_CONN, central and peripheral counts are 1. This
- * way we avoid wasting memory in the host if the device will only use one role
- * at a time.
- */
-#define SDC_CENTRAL_COUNT 1
-#endif	/* CONFIG_BT_MAX_CONN > 1 */
-
+#define SDC_CENTRAL_COUNT CONFIG_BT_CTLR_SDC_CENTRAL_COUNT
 #else
 #define SDC_CENTRAL_COUNT 0
 #endif /* defined(CONFIG_BT_CONN) && defined(CONFIG_BT_CENTRAL) */
+
+#define PERIPHERAL_COUNT (CONFIG_BT_MAX_CONN - SDC_CENTRAL_COUNT)
 
 BUILD_ASSERT(!IS_ENABLED(CONFIG_BT_CENTRAL) ||
 			 (SDC_CENTRAL_COUNT > 0));
 
 BUILD_ASSERT(!IS_ENABLED(CONFIG_BT_PERIPHERAL) ||
-			 (CONFIG_BT_CTLR_SDC_PERIPHERAL_COUNT > 0));
+			 (PERIPHERAL_COUNT > 0));
+
 
 #if defined(CONFIG_BT_BROADCASTER)
 	#if defined(CONFIG_BT_CTLR_ADV_EXT)
@@ -175,8 +168,6 @@ BUILD_ASSERT(!IS_ENABLED(CONFIG_BT_PERIPHERAL) ||
 	CONFIG_BT_CTLR_SDC_TX_PACKET_COUNT, \
 	CONFIG_BT_CTLR_SDC_RX_PACKET_COUNT) \
 	+ SDC_MEM_PERIPHERAL_LINKS_SHARED)
-
-#define PERIPHERAL_COUNT CONFIG_BT_CTLR_SDC_PERIPHERAL_COUNT
 
 #define SDC_FAL_MEM_SIZE SDC_MEM_FAL(CONFIG_BT_CTLR_FAL_SIZE)
 
@@ -1071,7 +1062,7 @@ static int configure_memory_usage(void)
 #endif
 
 #if !defined(CONFIG_BT_LL_SOFTDEVICE_CENTRAL)
-	cfg.peripheral_count.count = CONFIG_BT_CTLR_SDC_PERIPHERAL_COUNT;
+	cfg.peripheral_count.count = PERIPHERAL_COUNT;
 
 	required_memory =
 		sdc_cfg_set(SDC_DEFAULT_RESOURCE_CFG_TAG,
